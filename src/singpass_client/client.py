@@ -101,7 +101,7 @@ class SingpassOauthClient:
         alg = header.get("alg")
         if not alg or alg != expected_alg:
             raise UnexpectedTokenError(
-                "UnexpectedTokenError: jwt header contains unexpected algorithm"
+                f"UnexpectedTokenError: jwt header contains unexpected algorithm, got {alg}, expected {expected_alg}"
             )
 
     def _decode_jwt_header(self, encoded_header: str) -> dict[str, Any]:
@@ -162,7 +162,7 @@ class SingpassOauthClient:
         except httpx.HTTPError as e:
             raise Exception(f"Exception: {e}")
 
-    def _load_key_from_dict(key_dict: dict[str, Any], kty: str) -> Key:
+    def _load_key_from_dict(self, key_dict: dict[str, Any], kty: str) -> Key:
         """Convert key type from dict into jose Key according to key type
 
         Args:
@@ -352,9 +352,6 @@ class SingpassOauthClient:
             )
             if not singpass_sig_key_dict:
                 raise InvalidKeyError("InvalidKeyError: missing singpass key")
-            self._verify_jwt_header(
-                header=jws_header, expected_alg=singpass_sig_key_dict.get("alg")
-            )
             singpass_sig_key_type = singpass_sig_key_dict.get("kty")
             singpass_sig_key = self._load_key_from_dict(
                 key_dict=singpass_sig_key_dict, kty=singpass_sig_key_type
@@ -424,7 +421,7 @@ class SingpassOauthClient:
                 raise InfoRequestError(f"InfoRequestError: {e}")
 
         try:
-            jwe_token = _request_info(access_token=access_token)
+            jwe_token = await _request_info(access_token=access_token)
             if not self.KEYS:
                 self._load_key_set(key_file_path)
             en_key = next(key for key in self.KEYS if key.kid == en_key_id)
@@ -440,9 +437,6 @@ class SingpassOauthClient:
             )
             if not singpass_sig_key_dict:
                 raise InvalidKeyError("InvalidKeyError: missing singpass key")
-            self._verify_jwt_header(
-                header=jws_header, expected_alg=singpass_sig_key_dict.get("alg")
-            )
             singpass_sig_key_type = singpass_sig_key_dict.get("kty")
             singpass_sig_key = self._load_key_from_dict(
                 key_dict=singpass_sig_key_dict, kty=singpass_sig_key_type
